@@ -1,4 +1,4 @@
-# source commit: 93c2853b5a4a03fd687c427f61aa7b776a5b8788
+# source commit: 947d85bbabdcb10e54d08fbad30ca8a1b06a5aab
 name: Deploy eventpartner.ge production
 
 on:
