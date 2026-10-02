@@ -1,0 +1,52 @@
+name: Deploy eventpartner.ge bridge
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/deploy-eventpartner-ge.yml
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout eventpartner.ge
+        uses: actions/checkout@v4
+        with:
+          repository: kirillgoncharik-commits/eventpartnerge
+          ref: main
+          path: eventpartnerge
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build
+        working-directory: eventpartnerge
+        run: npm run build
+
+      - name: Generate social preview
+        working-directory: eventpartnerge
+        run: |
+          python -m pip install --disable-pip-version-check pillow
+          python scripts/generate-social-preview.py
+
+      - name: Validate
+        working-directory: eventpartnerge
+        run: npm run check
+
+      - name: Deploy production Worker
+        working-directory: eventpartnerge
+        run: npx --yes wrangler@4 deploy --config wrangler.production.jsonc
