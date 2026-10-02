@@ -1,4 +1,4 @@
-# source commit: 1b40f93d4c593708214a9bf836d324e83217de7b
+# source commit: 4568b6f02242761b746fd2f3b1ab97f728bfef61
 name: Deploy eventpartner.ge preview
 
 on:
@@ -30,6 +30,12 @@ jobs:
       - name: Build
         working-directory: site
         run: npm run build
+
+      - name: Generate social preview
+        working-directory: site
+        run: |
+          python -m pip install --quiet pillow
+          python scripts/generate-social-preview.py
 
       - name: Validate
         working-directory: site
