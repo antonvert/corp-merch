@@ -50,14 +50,20 @@ const picture = ({ item, eager = false, className = "" }) => `
 const brand = (homeHref = "/") => `
   <a class="brand" href="${homeHref}" aria-label="corp-merch.eu home">
     <span class="brand__mark" aria-hidden="true">CM</span>
-    <span><strong>corp-merch.eu</strong><small>by SWAGGY</small></span>
+    <span><strong>corp-merch.eu</strong></span>
   </a>`;
+
+const brandBadge = (homeHref = "/") => `
+  <div class="brand-badge">
+    ${brand(homeHref)}
+    <a class="brand-badge__endorsement" href="${site.poweredByUrl}" target="_blank" rel="noopener" aria-label="Powered by SWAGGY"><span>Powered by</span><strong>SWAGGY</strong></a>
+  </div>`;
 
 const header = ({ internal = false } = {}) => {
   const root = internal ? "/" : "";
   return `
   <header class="site-header" data-header>
-    ${brand("/")}
+    ${brandBadge("/")}
     <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="main-menu" data-menu-toggle>
       <span></span><span></span><span></span><span class="sr-only">Open menu</span>
     </button>
@@ -115,7 +121,7 @@ const footer = () => `
       <p>Corporate merchandise produced in the EU and delivered across Europe.</p>
     </div>
     <div class="footer-links">
-      <a href="${site.poweredByUrl}" target="_blank" rel="noopener">SWAGGY.agency</a>
+      <a href="${site.poweredByUrl}" target="_blank" rel="noopener">Powered by SWAGGY</a>
       <a href="mailto:${site.email}">${site.email}</a>
       <a href="${site.telegramUrl}" target="_blank" rel="noopener">Telegram</a>
       <a href="${site.privacyUrl}" target="_blank" rel="noopener">Privacy</a>
