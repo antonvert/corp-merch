@@ -34,27 +34,6 @@ jobs:
         working-directory: site
         run: npm run check
 
-      - name: Remove conflicting web DNS records
-        run: |
-          zone_json="$(curl --fail-with-body --silent --show-error \
-            -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            "https://api.cloudflare.com/client/v4/zones?name=eventpartner.ge&status=active")"
-          zone_id="$(echo "$zone_json" | jq -r '.result[0].id // empty')"
-          test -n "$zone_id"
-
-          for hostname in eventpartner.ge www.eventpartner.ge; do
-            records="$(curl --fail-with-body --silent --show-error \
-              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-              "https://api.cloudflare.com/client/v4/zones/$zone_id/dns_records?name=$hostname&per_page=100")"
-            echo "$records" | jq -r '.result[] | select(.type == "A" or .type == "AAAA" or .type == "CNAME") | .id' | while read -r record_id; do
-              test -z "$record_id" && continue
-              curl --fail-with-body --silent --show-error \
-                --request DELETE \
-                -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-                "https://api.cloudflare.com/client/v4/zones/$zone_id/dns_records/$record_id" >/dev/null
-            done
-          done
-
       - name: Deploy production Worker
         working-directory: site
         run: npx --yes wrangler@4 deploy --config wrangler.production.jsonc
