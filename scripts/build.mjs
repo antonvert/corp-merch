@@ -56,7 +56,7 @@ const brand = (homeHref = "/") => `
 const brandBadge = (homeHref = "/") => `
   <div class="brand-badge">
     ${brand(homeHref)}
-    <a class="brand-badge__endorsement" href="${site.poweredByUrl}" target="_blank" rel="noopener" aria-label="Powered by SWAGGY"><span>Powered by</span><strong>SWAGGY</strong></a>
+    <a class="brand-badge__endorsement" href="${site.poweredByUrl}" target="_blank" rel="noopener" aria-label="By SWAGGY"><span>BY</span><strong>SWAGGY</strong></a>
   </div>`;
 
 const header = ({ internal = false } = {}) => {
@@ -116,12 +116,15 @@ const leadForm = ({ context = "homepage" } = {}) => `
 
 const footer = () => `
   <footer class="site-footer">
-    <div>
-      ${brand("/")}
+    <div class="footer-primary">
+      <div class="footer-identity">
+        ${brand("/")}
+        <a class="footer-project" href="${site.poweredByUrl}" target="_blank" rel="noopener">A PROJECT<br>BY<br>SWAGGY.AGENCY</a>
+      </div>
       <p>Corporate merchandise produced in the EU and delivered across Europe.</p>
     </div>
     <div class="footer-links">
-      <a href="${site.poweredByUrl}" target="_blank" rel="noopener">Powered by SWAGGY</a>
+      <a href="${site.poweredByUrl}" target="_blank" rel="noopener">SWAGGY.agency</a>
       <a href="mailto:${site.email}">${site.email}</a>
       <a href="${site.telegramUrl}" target="_blank" rel="noopener">Telegram</a>
       <a href="${site.privacyUrl}" target="_blank" rel="noopener">Privacy</a>
