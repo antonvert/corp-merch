@@ -1,0 +1,62 @@
+name: Deploy eventpartner.ge production
+
+on:
+  push:
+    branches: [eventpartner-preview-deploy]
+
+permissions:
+  contents: read
+
+jobs:
+  production:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout eventpartner.ge
+        uses: actions/checkout@v4
+        with:
+          repository: kirillgoncharik-commits/eventpartnerge
+          ref: main
+          path: site
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build
+        working-directory: site
+        run: npm run build
+
+      - name: Validate
+        working-directory: site
+        run: npm run check
+
+      - name: Deploy production Worker
+        working-directory: site
+        run: npx --yes wrangler@4 deploy --config wrangler.production.jsonc
+
+      - name: Smoke test homepage and www redirect
+        run: |
+          curl --fail --silent --show-error https://eventpartner.ge/ | grep -q 'eventpartner'
+          status="$(curl --silent --output /dev/null --write-out '%{http_code}' https://www.eventpartner.ge/)"
+          test "$status" = "308"
+
+      - name: Smoke test production lead delivery
+        run: |
+          started_at="$(node -e 'console.log(Date.now()-5000)')"
+          response="$(curl --fail-with-body --silent --show-error \
+            --request POST https://eventpartner.ge/api/lead \
+            --data-urlencode "name=eventpartner.ge production smoke test" \
+            --data-urlencode "email=order@swaggy.agency" \
+            --data-urlencode "company=SWAGGY" \
+            --data-urlencode "date=Production launch test" \
+            --data-urlencode "guests=1" \
+            --data-urlencode "message=Automated one-time production delivery test after launch. No action needed." \
+            --data-urlencode "page=en" \
+            --data-urlencode "consent=on" \
+            --data-urlencode "startedAt=$started_at")"
+          echo "$response"
+          echo "$response" | grep -q '"ok":true'
