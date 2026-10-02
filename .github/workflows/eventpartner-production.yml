@@ -38,10 +38,20 @@ jobs:
         working-directory: site
         run: npx --yes wrangler@4 deploy --config wrangler.production.jsonc
 
-      - name: Smoke test homepage and www redirect
+      - name: Wait for custom-domain DNS and smoke test
         run: |
-          curl --fail --silent --show-error https://eventpartner.ge/ | grep -q 'eventpartner'
-          status="$(curl --silent --output /dev/null --write-out '%{http_code}' https://www.eventpartner.ge/)"
+          resolved=0
+          for attempt in $(seq 1 30); do
+            if curl --connect-timeout 5 --max-time 15 --fail --silent --show-error https://eventpartner.ge/ | grep -q 'eventpartner'; then
+              resolved=1
+              break
+            fi
+            echo "DNS/custom domain not ready yet (attempt $attempt/30)"
+            sleep 10
+          done
+          test "$resolved" = "1"
+
+          status="$(curl --connect-timeout 5 --max-time 15 --silent --output /dev/null --write-out '%{http_code}' https://www.eventpartner.ge/)"
           test "$status" = "308"
 
       - name: Smoke test production lead delivery
