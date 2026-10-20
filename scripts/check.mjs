@@ -142,6 +142,10 @@ for (const eventName of [
 const gaId = html.match(/<meta name="ga4-measurement-id" content="([^"]*)">/)?.[1] || "";
 if (!html.includes('meta name="ga4-measurement-id"')) failures.push("GA4 configuration hook is missing.");
 if (!clientScript.includes("measurementId") || !clientScript.includes('window.gtag("event", event')) failures.push("GA4 event forwarding is missing.");
+for (const eventName of ["generate_lead", "click_email", "click_phone", "click_messenger", "click_booking"]) {
+  if (!clientScript.includes(eventName)) failures.push(`Canonical analytics event is missing: ${eventName}`);
+}
+if (!clientScript.includes("analytics_storage") || !clientScript.includes("analytics-consent")) failures.push("Consent-gated analytics is missing.");
 if (gaId && !/^G-[A-Z0-9]{6,}$/.test(gaId)) failures.push("GA4 measurement ID has an invalid format.");
 if (!gaId) warnings.push("GA4_MEASUREMENT_ID is not set; create the separate corp-merch.eu web stream before production deployment.");
 if (process.env.REQUIRE_GA4 === "1" && !gaId) failures.push("Production check requires GA4_MEASUREMENT_ID.");
