@@ -1,6 +1,7 @@
 (() => {
   const productionHosts = ["corp-merch.eu", "www.corp-merch.eu"];
   const isProductionHost = productionHosts.includes(window.location.hostname);
+  const consentKey = "corp_merch_analytics_consent_v1";
   const measurementId = document
     .querySelector('meta[name="ga4-measurement-id"]')
     ?.getAttribute("content")
@@ -13,24 +14,72 @@
       window.dataLayer.push(arguments);
     };
 
-  if (isProductionHost && /^G-[A-Z0-9]{6,}$/.test(measurementId || "")) {
+  let analyticsEnabled = false;
+  const validMeasurementId = /^G-[A-Z0-9]{6,}$/.test(measurementId || "");
+
+  const readConsent = () => {
+    try { return window.localStorage.getItem(consentKey); } catch { return null; }
+  };
+
+  const writeConsent = (value) => {
+    try { window.localStorage.setItem(consentKey, value); } catch { /* Analytics remains optional. */ }
+  };
+
+  const enableAnalytics = () => {
+    if (!isProductionHost || !validMeasurementId || analyticsEnabled) return;
+    analyticsEnabled = true;
+    window.gtag("consent", "default", {
+      analytics_storage: "denied",
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied"
+    });
+    window.gtag("consent", "update", { analytics_storage: "granted" });
     const analyticsScript = document.createElement("script");
     analyticsScript.async = true;
     analyticsScript.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
     document.head.append(analyticsScript);
     window.gtag("js", new Date());
     window.gtag("config", measurementId, { anonymize_ip: true });
-  }
+  };
+
+  const mountConsent = () => {
+    if (!isProductionHost || !validMeasurementId) return;
+    const stored = readConsent();
+    if (stored === "granted") { enableAnalytics(); return; }
+    if (stored === "denied") return;
+
+    const banner = document.createElement("aside");
+    banner.className = "analytics-consent";
+    banner.setAttribute("aria-label", "Analytics preferences");
+    banner.innerHTML = '<div><strong>Optional analytics</strong><p>Anonymous usage data helps us improve the site. It is never combined with form details.</p></div><div class="analytics-consent__actions"><button type="button" data-analytics-consent="denied">No thanks</button><button type="button" data-analytics-consent="granted">Allow analytics</button></div>';
+    banner.addEventListener("click", (event) => {
+      const choice = event.target.closest("[data-analytics-consent]")?.dataset.analyticsConsent;
+      if (!choice) return;
+      writeConsent(choice);
+      if (choice === "granted") enableAnalytics();
+      banner.remove();
+    });
+    document.body.append(banner);
+  };
 
   const pushEvent = (event, details = {}) => {
     const safeDetails = Object.fromEntries(
       Object.entries(details).filter(([, value]) => typeof value === "string" && value.length <= 100)
     );
-    window.dataLayer.push({ event, ...safeDetails });
-    if (isProductionHost && /^G-[A-Z0-9]{6,}$/.test(measurementId || "")) {
+    if (analyticsEnabled) {
       window.gtag("event", event, safeDetails);
+    } else if (!isProductionHost) {
+      window.dataLayer.push({ event, ...safeDetails });
     }
   };
+
+  const normalizedEventName = (name) => ({
+    telegram_click: "click_messenger",
+    email_click: "click_email",
+    phone_click: "click_phone",
+    booking_click: "click_booking"
+  }[name] || name);
 
   const menuButton = document.querySelector("[data-menu-toggle]");
   const menu = document.querySelector("[data-menu]");
@@ -55,8 +104,10 @@
 
   document.querySelectorAll("[data-event]").forEach((element) => {
     element.addEventListener("click", () => {
-      pushEvent(element.dataset.event, {
-        event_label: element.dataset.eventLabel || element.textContent.trim()
+      const eventName = normalizedEventName(element.dataset.event);
+      pushEvent(eventName, {
+        event_label: (element.dataset.eventLabel || element.textContent.trim()).slice(0, 100),
+        messenger: eventName === "click_messenger" ? "telegram" : ""
       });
     });
   });
@@ -97,6 +148,8 @@
     stickyObserver.observe(heroSection);
     stickyObserver.observe(briefSection);
   }
+
+  mountConsent();
 
   const form = document.querySelector("[data-lead-form]");
   if (!form) return;
@@ -157,6 +210,7 @@
       }
 
       pushEvent("form_submit", { page_context: pageContext });
+      pushEvent("generate_lead", { page_context: pageContext, lead_source: "contact_form" });
       form.reset();
       formStarted = false;
       resetStartedAt();
