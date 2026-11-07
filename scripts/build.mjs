@@ -504,7 +504,7 @@ const notFoundHtml = `<!doctype html>
 </html>`;
 
 const robots = `User-agent: *\nAllow: /\n\nSitemap: ${site.url}/sitemap.xml\n`;
-const lastmod = new Date().toISOString().slice(0, 10);
+const lastmod = '2026-11-07'; // Update when published content changes, not on every build.
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>${site.url}/</loc><lastmod>${lastmod}</lastmod><changefreq>monthly</changefreq><priority>1.0</priority></url>

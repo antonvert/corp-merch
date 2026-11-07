@@ -3,7 +3,7 @@ export const site = {
   url: "https://corp-merch.eu",
   title: "Corporate Merchandise & Event Merch Europe | SWAGGY",
   description:
-    "Corporate merch, gifts, printing and POSM produced in the EU and delivered directly to offices, hotels and event venues across Europe.",
+    "Corporate merch, conference merchandise and corporate gifting in Europe. EU-produced apparel, gifts, print and POSM delivered to your office or event.",
   email: "order@swaggy.agency",
   telegramUrl: "https://t.me/swaggyagency",
   telegramLabel: "@swaggyagency",
@@ -240,7 +240,7 @@ export const igamingPage = {
   proof: ["EU production", "Deadline-oriented", "Direct event delivery"],
   introTitle: "One merchandise partner for a fast-moving event calendar.",
   introCopy:
-    "SWAGGY coordinates the complete flow — selection, sourcing, branding, production, quality control, packing and delivery — so event and marketing teams do not have to manage a network of local vendors.",
+    "SWAGGY coordinates selection, sourcing, branding, production, quality control, packing and delivery for event and marketing teams. For a quote, share the event or office location, required delivery date, quantities, product ideas and available artwork. We agree the shortlist, approvals and delivery plan before production; timing and feasibility depend on the brief and venue rules.",
   serviceTypes: [
     "iGaming conference merchandise",
     "conference giveaways",
