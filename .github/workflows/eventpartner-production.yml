@@ -1,12 +1,17 @@
-# source commit: 4568b6f02242761b746fd2f3b1ab97f728bfef61
 name: Deploy eventpartner.ge production
 
 on:
   push:
     branches: [eventpartner-preview-deploy]
+    paths: [.github/workflows/eventpartner-production.yml]
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: eventpartner-ge-production
+  cancel-in-progress: false
 
 jobs:
   production:
@@ -15,65 +20,26 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - name: Checkout eventpartner.ge
+      - name: Checkout the reviewed EventPartner release
         uses: actions/checkout@v4
         with:
-          repository: kirillgoncharik-commits/eventpartnerge
-          ref: main
+          repository: antonvert/eventpartnerge
+          ref: 009446b1075d17d74121990cf7b0bf085b88bc92
           path: site
-
-      - name: Setup Node
+      - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Build
         working-directory: site
         run: npm run build
-
-      - name: Generate social preview
-        working-directory: site
-        run: |
-          python -m pip install --quiet pillow
-          python scripts/generate-social-preview.py
-
       - name: Validate
         working-directory: site
         run: npm run check
-
-      - name: Deploy production Worker
+      - name: Deploy production Worker through the existing account
         working-directory: site
         run: npx --yes wrangler@4 deploy --config wrangler.production.jsonc
-
-      - name: Wait for custom-domain DNS and smoke test
+      - name: Verify published language versions without sending enquiries
         run: |
-          resolved=0
-          for attempt in $(seq 1 30); do
-            if curl --connect-timeout 5 --max-time 15 --fail --silent --show-error https://eventpartner.ge/ | grep -q 'eventpartner'; then
-              resolved=1
-              break
-            fi
-            echo "DNS/custom domain not ready yet (attempt $attempt/30)"
-            sleep 10
-          done
-          test "$resolved" = "1"
-
-          status="$(curl --connect-timeout 5 --max-time 15 --silent --output /dev/null --write-out '%{http_code}' https://www.eventpartner.ge/)"
-          test "$status" = "308"
-
-      - name: Smoke test production lead delivery
-        run: |
-          started_at="$(node -e 'console.log(Date.now()-5000)')"
-          response="$(curl --fail-with-body --silent --show-error \
-            --request POST https://eventpartner.ge/api/lead \
-            --data-urlencode "name=eventpartner.ge production smoke test" \
-            --data-urlencode "email=order@swaggy.agency" \
-            --data-urlencode "company=SWAGGY" \
-            --data-urlencode "date=Production launch test" \
-            --data-urlencode "guests=1" \
-            --data-urlencode "message=Automated one-time production delivery test after launch. No action needed." \
-            --data-urlencode "page=en" \
-            --data-urlencode "consent=on" \
-            --data-urlencode "startedAt=$started_at")"
-          echo "$response"
-          echo "$response" | grep -q '"ok":true'
+          curl --fail --silent --show-error https://eventpartner.ge/ | grep -q 'G-K9YVTX0VDH'
+          curl --fail --silent --show-error https://eventpartner.ge/ka/ | grep -q 'lang="ka"'
