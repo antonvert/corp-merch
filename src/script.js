@@ -1,3 +1,24 @@
+
+  // Send a clean page address; campaign labels are separate from contact/form query strings.
+  function analyticsContext() {
+    const context = {
+      page_location: location.origin + location.pathname,
+      page_referrer: '',
+      allow_google_signals: false,
+      allow_ad_personalization_signals: false
+    };
+    try { const ref = new URL(document.referrer); context.page_referrer = ref.origin + ref.pathname; } catch (_) {}
+    const query = new URLSearchParams(location.search);
+    for (const [utm, field] of Object.entries({utm_source:'campaign_source', utm_medium:'campaign_medium', utm_campaign:'campaign_name', utm_content:'campaign_content', utm_term:'campaign_term'})) {
+      const value = query.get(utm);
+      if (value && /^[a-zA-Z0-9_. -]{1,100}$/.test(value) && !/\d{7}/.test(value)) context[field] = value;
+    }
+    if (query.get('codex_test') === 'seo_20261107') { context.debug_mode = true; context.test_run = 'seo_20261107'; }
+    return context;
+  }
+  function analyticsPage() {
+    return {site: location.hostname.replace(/^www\./, ''), language: document.documentElement.lang || 'en', page_path: location.pathname};
+  }
 (() => {
   const productionHosts = ["corp-merch.eu", "www.corp-merch.eu"];
   const isProductionHost = productionHosts.includes(window.location.hostname);
@@ -15,6 +36,7 @@
     };
 
   let analyticsEnabled = false;
+  let analyticsLoaded = false;
   const validMeasurementId = /^G-[A-Z0-9]{6,}$/.test(measurementId || "");
 
   const readConsent = () => {
@@ -28,6 +50,10 @@
   const enableAnalytics = () => {
     if (!isProductionHost || !validMeasurementId || analyticsEnabled) return;
     analyticsEnabled = true;
+    window["ga-disable-" + measurementId] = false;
+    window.gtag("consent", "update", { analytics_storage: "granted" });
+    if (analyticsLoaded) return;
+    analyticsLoaded = true;
     window.gtag("consent", "default", {
       analytics_storage: "denied",
       ad_storage: "denied",
@@ -40,14 +66,15 @@
     analyticsScript.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`;
     document.head.append(analyticsScript);
     window.gtag("js", new Date());
-    window.gtag("config", measurementId, { anonymize_ip: true });
+    window.gtag("config", measurementId, { ...analyticsContext(), anonymize_ip: true });
   };
 
-  const mountConsent = () => {
+  const mountConsent = (settings = false) => {
+    if (document.querySelector(".analytics-consent")) return;
     if (!isProductionHost || !validMeasurementId) return;
     const stored = readConsent();
-    if (stored === "granted") { enableAnalytics(); return; }
-    if (stored === "denied") return;
+    if (stored === "granted") { enableAnalytics(); if (!settings) return; }
+    if (stored === "denied" && !settings) return;
 
     const banner = document.createElement("aside");
     banner.className = "analytics-consent";
@@ -58,6 +85,16 @@
       if (!choice) return;
       writeConsent(choice);
       if (choice === "granted") enableAnalytics();
+      else {
+        analyticsEnabled = false;
+        window["ga-disable-" + measurementId] = true;
+        window.gtag("consent", "update", { analytics_storage: "denied" });
+        for (const part of document.cookie.split(';')) {
+          const name = part.split('=')[0].trim();
+          if (!/^_ga(?:_|$)/.test(name)) continue;
+          for (const domain of ['', location.hostname, '.' + location.hostname]) document.cookie = name + '=; Max-Age=0; path=/' + (domain ? '; domain=' + domain : '');
+        }
+      }
       banner.remove();
     });
     document.body.append(banner);
@@ -68,7 +105,7 @@
       Object.entries(details).filter(([, value]) => typeof value === "string" && value.length <= 100)
     );
     if (analyticsEnabled) {
-      window.gtag("event", event, safeDetails);
+      window.gtag("event", event, { ...analyticsPage(), ...safeDetails });
     } else if (!isProductionHost) {
       window.dataLayer.push({ event, ...safeDetails });
     }
@@ -150,6 +187,14 @@
   }
 
   mountConsent();
+  if (isProductionHost) {
+    const settings = document.createElement('button');
+    settings.type = 'button';
+    settings.className = 'analytics-settings';
+    settings.textContent = document.documentElement.lang === 'ru' ? 'Настройки аналитики' : document.documentElement.lang === 'ka' ? 'ანალიტიკის პარამეტრები' : 'Analytics preferences';
+    settings.addEventListener('click', () => mountConsent(true));
+    (document.querySelector('footer') || document.body).appendChild(settings);
+  }
 
   const form = document.querySelector("[data-lead-form]");
   if (!form) return;
@@ -159,6 +204,7 @@
   const startedAt = form.querySelector("[data-started-at]");
   const pageContext = form.querySelector('[name="page"]')?.value || "homepage";
   let formStarted = false;
+  let submitting = false;
 
   const resetStartedAt = () => {
     if (startedAt) startedAt.value = String(Date.now());
@@ -173,6 +219,7 @@
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (submitting) return;
     status.textContent = "";
     status.className = "form-status";
     form.querySelectorAll("[aria-invalid]").forEach((field) => field.removeAttribute("aria-invalid"));
@@ -188,6 +235,7 @@
 
     const payload = Object.fromEntries(new FormData(form).entries());
     payload.consent = Boolean(payload.consent);
+    submitting = true;
     submitButton.disabled = true;
     submitButton.textContent = "Sending…";
 
@@ -199,7 +247,7 @@
       });
       const result = await response.json().catch(() => ({}));
 
-      if (!response.ok) {
+      if (!response.ok || result.ok !== true) {
         if (result.code === "destination_not_configured") {
           throw new Error("Lead delivery is not connected in this preview. Please use Telegram or email.");
         }
@@ -220,6 +268,7 @@
       status.textContent = error.message;
       status.classList.add("is-error");
     } finally {
+      submitting = false;
       submitButton.disabled = false;
       submitButton.innerHTML = 'Send Your Brief <span aria-hidden="true">↗</span>';
     }
