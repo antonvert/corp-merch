@@ -541,3 +541,6 @@ await Promise.all([
 ]);
 
 console.log(`Built corp-merch.eu → ${path.relative(projectRoot, distDir)}`);
+
+const {extendEvents}=await import('./extend-events.mjs');
+await extendEvents(projectRoot,site);
