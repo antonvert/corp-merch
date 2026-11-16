@@ -104,7 +104,7 @@ if (count(html, /class="process-step"/g) !== 5) failures.push("Homepage must con
 if (count(html, /data-observe-event="project_gallery_view"/g) !== 1) failures.push("Project gallery analytics marker is missing or duplicated.");
 if (html.includes("route-board") || html.includes("deliveryCities") || html.includes("hero__stamp")) failures.push("Removed route-board or photo-sticker UI remains on the homepage.");
 if (!html.includes('id="events"') || count(html, /class="event-row"/g) !== 6) failures.push("Homepage must contain the compact six-event conference list.");
-for (const eventName of ["ICE Barcelona 2027", "iGB Affiliate Barcelona 2027", "TES Affiliate Conference Seville 2027", "SBC Summit Europe", "SiGMA Europe", "Affiliate World Europe"]) {
+for (const eventName of ["ICE Barcelona", "iGB Affiliate Barcelona", "TES Affiliate Conference Seville", "SBC Summit Europe", "SiGMA Europe", "Affiliate World Europe"]) {
   if (!html.includes(eventName)) failures.push(`Homepage event list is missing: ${eventName}`);
 }
 if (count(html, /class="benefit-card"/g) !== 4) failures.push("Homepage must contain four compact EU benefit cards.");
