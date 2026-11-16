@@ -8,3 +8,10 @@ if(row.beforeSeo){assert.equal(H(seo(h)),row.beforeSeo,'Existing SEO '+row.url);
 for(const m of h.matchAll(/<script\b[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi))JSON.parse(m[1]);for(const m of h.matchAll(/(?:href|src)="(\/[^"#?]*)(?:[?#][^"]*)?"/g)){let p=m[1];if(p==='/api/lead')continue;let target=path.join(dist,p.slice(1));if(p.endsWith('/'))target=path.join(target,'index.html');try{await access(target);}catch{throw Error('Broken local URL '+row.url+' -> '+p);}}
 if(!row.beforeSeo){assert.equal(contract(h),rootContract,'New page form contract '+row.url);assert(!/\b20\d{2}\b/.test(main(h).replace(/<[^>]*>/g,' ')),'Dated new HR page');const can=(h.match(/<link\b[^>]*>/gi)||[]).find(t=>attr(t,'rel')==='canonical');assert.equal(attr(can,'href'),row.url);assert(h.includes('property="og:image"'));}}
 const sitemap=await readFile(path.join(dist,'sitemap.xml'),'utf8'),urls=[...sitemap.matchAll(/<loc>(.*?)<\/loc>/g)].map(x=>x[1]);assert.equal(new Set(urls).size,urls.length);assert.equal(urls.length,r.oldUrls.length+7);for(const u of r.oldUrls)assert(urls.includes(u),'Removed old address '+u);for(const row of r.created)assert(urls.includes(row.url));const llms=await readFile(path.join(dist,'llms.txt'),'utf8');assert(llms.startsWith(r.llmsBefore));for(const row of r.created)assert(llms.includes(row.url));assert.equal(r.created.length,7);console.log(JSON.stringify({domain:r.domain,passed:true,existingPagesEnhanced:r.changed.length,newPages:r.created.length,oldUrlsAndSeoPreserved:true,existingDesignAndFormProtected:true}));
+const sitemapTagOrder = ['loc', 'lastmod', 'changefreq', 'priority'];
+for (const [, entry] of sitemap.matchAll(/<url>([\s\S]*?)<\/url>/g)) {
+  const tags = [...entry.matchAll(/<(loc|lastmod|changefreq|priority)>/g)].map(m => m[1]);
+  assert.equal(tags[0], 'loc', 'Sitemap URL must start with loc');
+  assert.deepEqual(tags, [...new Set(tags)].sort((a, b) => sitemapTagOrder.indexOf(a) - sitemapTagOrder.indexOf(b)), 'Sitemap protocol element order');
+}
+console.log('Sitemap element order verified.');
