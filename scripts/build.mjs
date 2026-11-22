@@ -547,3 +547,6 @@ await extendEvents(projectRoot,site);
 
 const {extendEventHr}=await import('./extend-event-hr.mjs');
 await extendEventHr(projectRoot,site);
+
+const {finalizeSitemap}=await import('./finalize-sitemap.mjs');
+await finalizeSitemap(projectRoot,site);
